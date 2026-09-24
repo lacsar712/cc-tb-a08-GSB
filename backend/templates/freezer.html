@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>留样冷柜</h1>
+<p class="hint">不通过批次强制登记留样；到期（取出日早于今天）仍未点取出的批次进入超期留样栏，并自动记一条超期备忘。今天：{{ today }}</p>
+
+<h2>冷柜在柜</h2>
+<table>
+  <thead><tr><th>批次</th><th>柜位编号</th><th>预计取出日</th><th>加权分</th>{% if can_write %}<th>操作</th>{% endif %}</tr></thead>
+  <tbody>
+    {% for row in in_freezer %}
+    <tr>
+      <td>{{ row.lot }}</td>
+      <td>{{ row.freezer_slot }}</td>
+      <td>{{ row.take_out_date.isoformat() }}</td>
+      <td>{{ row.score }}</td>
+      {% if can_write %}
+      <td>
+        <form method="post" action="{{ url_for('retrieve', cupping_id=row.id) }}" class="inline">
+          <button>点取出</button>
+        </form>
+        <form method="post" action="{{ url_for('update_take_out_date', cupping_id=row.id) }}" class="inline">
+          <input type="date" name="take_out_date" value="{{ row.take_out_date.isoformat() }}" required />
+          <button>改取出日</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="{{ 5 if can_write else 4 }}">暂无在柜留样</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 class="overdue-title">超期留样栏</h2>
+<table class="overdue">
+  <thead><tr><th>批次</th><th>柜位编号</th><th>预计取出日</th><th>超期天数</th>{% if can_write %}<th>操作</th>{% endif %}</tr></thead>
+  <tbody>
+    {% for row in overdue %}
+    <tr>
+      <td>{{ row.lot }}</td>
+      <td>{{ row.freezer_slot }}</td>
+      <td>{{ row.take_out_date.isoformat() }}</td>
+      <td>{{ (today - row.take_out_date).days }} 天</td>
+      {% if can_write %}
+      <td>
+        <form method="post" action="{{ url_for('retrieve', cupping_id=row.id) }}" class="inline">
+          <button>点取出</button>
+        </form>
+        <form method="post" action="{{ url_for('update_take_out_date', cupping_id=row.id) }}" class="inline">
+          <input type="date" name="take_out_date" value="{{ row.take_out_date.isoformat() }}" required />
+          <button>改取出日</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="{{ 5 if can_write else 4 }}">暂无超期留样</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>已取出</h2>
+<table>
+  <thead><tr><th>批次</th><th>柜位编号</th><th>预计取出日</th><th>实际取出时间</th></tr></thead>
+  <tbody>
+    {% for row in taken_out %}
+    <tr>
+      <td>{{ row.lot }}</td>
+      <td>{{ row.freezer_slot }}</td>
+      <td>{{ row.take_out_date.isoformat() }}</td>
+      <td>{{ row.taken_out_at.strftime('%Y-%m-%d %H:%M') }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4">暂无已取出留样</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>留样备忘</h2>
+<ul class="memos">
+  {% for m in memos %}
+  <li>[{{ m.created_at.strftime('%Y-%m-%d %H:%M') }}] {{ m.content }}（{{ m.created_by }}）</li>
+  {% else %}
+  <li>暂无备忘</li>
+  {% endfor %}
+</ul>
+{% endblock %}

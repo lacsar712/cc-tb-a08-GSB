@@ -33,6 +33,22 @@ def main():
             created_by text NOT NULL
         )"""
     )
+    # 不通过批次的留样冷柜登记信息
+    cur.execute("ALTER TABLE cuppings ADD COLUMN IF NOT EXISTS freezer_slot text")
+    cur.execute("ALTER TABLE cuppings ADD COLUMN IF NOT EXISTS take_out_date date")
+    cur.execute("ALTER TABLE cuppings ADD COLUMN IF NOT EXISTS taken_out_at timestamp")
+    # 超期备忘：每个批次每类只记一条
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS retention_memos (
+            id serial PRIMARY KEY,
+            cupping_id integer NOT NULL REFERENCES cuppings(id),
+            kind text NOT NULL,
+            content text NOT NULL,
+            created_by text NOT NULL,
+            created_at timestamp NOT NULL DEFAULT now(),
+            UNIQUE (cupping_id, kind)
+        )"""
+    )
     cur.execute("SELECT COUNT(*) FROM cuppings")
     if cur.fetchone()[0] == 0:
         for lot, aroma, taste, liquor in (("春茶-A", 8, 8, 7), ("夏茶-C", 5, 4, 6)):

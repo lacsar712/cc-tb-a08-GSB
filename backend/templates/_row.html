@@ -3,4 +3,10 @@
   <td>{{ row.score }}</td>
   <td class="{% if row.verdict == '通过' %}pass{% else %}fail{% endif %}">{{ row.verdict }}</td>
   <td>{{ row.note }}</td>
+  <td>
+    {% if row.freezer_slot %}
+      {{ row.freezer_slot }} · {{ row.take_out_date.isoformat() if row.take_out_date else '' }}
+      {% if row.taken_out_at %}（已取出 {{ row.taken_out_at.strftime('%Y-%m-%d %H:%M') }}）{% endif %}
+    {% endif %}
+  </td>
 </tr>
