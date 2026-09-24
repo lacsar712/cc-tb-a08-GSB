@@ -7,7 +7,10 @@
   <input name="aroma" type="number" step="0.1" min="0" max="10" placeholder="香气" required />
   <input name="taste" type="number" step="0.1" min="0" max="10" placeholder="滋味" required />
   <input name="liquor" type="number" step="0.1" min="0" max="10" placeholder="汤色" required />
+  <input name="freezer_slot" placeholder="留样柜位编号（不通过必填）" />
+  <input name="expected_remove_date" type="date" title="预计取出日（不通过必填）" />
   <button>提交</button>
+  <p class="hint">结论不通过时，柜位编号与预计取出日缺一项将拒交，批次强制入留样冷柜。</p>
 </form>
 {% endif %}
 <table>

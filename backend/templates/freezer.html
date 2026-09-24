@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block body %}
+<style>
+  h2 { margin-top: 24px; }
+  .hint { color: #7a6250; font-size: 13px; margin: 4px 0; }
+  .overdue-box { background: #fdecec; border: 1px solid #e4a3a3; padding: 8px 12px; }
+  .overdue-box th, .overdue-box td { border-bottom-color: #ecc7c7; }
+  .memo { background: #fffaf3; padding: 8px 12px; border-left: 4px solid #9f1239; margin: 6px 0; }
+  .memo time { color: #7a6250; font-size: 12px; }
+  form.inline { display: inline; padding: 0; margin: 0; background: none; }
+</style>
+
+<h1>留样冷柜</h1>
+<p class="hint">不通过批次强制留样：审评员登记柜位与预计取出日，取出时点取出；到期未取出自动进入超期栏并记一条超期备忘。</p>
+
+<h2>在柜留样（{{ in_cabinet|length }}）</h2>
+<table>
+  <thead><tr><th>批次</th><th>加权分</th><th>柜位编号</th><th>预计取出日</th>{% if can_write %}<th>操作</th>{% endif %}</tr></thead>
+  <tbody>
+    {% for row in in_cabinet %}
+    <tr>
+      <td>{{ row.lot }}</td>
+      <td>{{ row.score }}</td>
+      <td>{{ row.freezer_slot }}</td>
+      <td>{{ row.expected_remove_date }}</td>
+      {% if can_write %}
+      <td>
+        <form class="inline" method="post" action="{{ url_for('reschedule', cupping_id=row.id) }}">
+          <input type="date" name="expected_remove_date" value="{{ row.expected_remove_date }}" required />
+          <button>改取出日</button>
+        </form>
+        <form class="inline" method="post" action="{{ url_for('remove_sample', cupping_id=row.id) }}">
+          <button>点取出</button>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% else %}
+    <tr><td colspan="{{ 5 if can_write else 4 }}">暂无在柜留样</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>超期留样（{{ overdue_rows|length }}）</h2>
+<div class="overdue-box">
+  <table>
+    <thead><tr><th>批次</th><th>加权分</th><th>柜位编号</th><th>应取出日</th>{% if can_write %}<th>操作</th>{% endif %}</tr></thead>
+    <tbody>
+      {% for row in overdue_rows %}
+      <tr>
+        <td class="fail">{{ row.lot }}</td>
+        <td>{{ row.score }}</td>
+        <td>{{ row.freezer_slot }}</td>
+        <td class="fail">{{ row.expected_remove_date }}（已超期）</td>
+        {% if can_write %}
+        <td>
+          <form class="inline" method="post" action="{{ url_for('reschedule', cupping_id=row.id) }}">
+            <input type="date" name="expected_remove_date" value="{{ row.expected_remove_date }}" required />
+            <button>改取出日</button>
+          </form>
+          <form class="inline" method="post" action="{{ url_for('remove_sample', cupping_id=row.id) }}">
+            <button>点取出</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr><td colspan="{{ 5 if can_write else 4 }}">暂无超期留样</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h2>超期备忘（{{ memos|length }}）</h2>
+{% for memo in memos %}
+<div class="memo">
+  <time>{{ memo.created_at }}</time>
+  <strong>{{ memo.lot }}</strong>：{{ memo.body }}
+</div>
+{% else %}
+<p class="hint">暂无超期备忘。</p>
+{% endfor %}
+{% endblock %}

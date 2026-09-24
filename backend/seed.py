@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import date, timedelta
 
 import psycopg2
 
@@ -33,14 +34,34 @@ def main():
             created_by text NOT NULL
         )"""
     )
+    # 留样冷柜登记：不通过批次强制入柜，记录柜位、预计取出日与实际取出时间
+    cur.execute("ALTER TABLE cuppings ADD COLUMN IF NOT EXISTS freezer_slot text")
+    cur.execute("ALTER TABLE cuppings ADD COLUMN IF NOT EXISTS expected_remove_date date")
+    cur.execute("ALTER TABLE cuppings ADD COLUMN IF NOT EXISTS removed_at timestamp with time zone")
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS retention_memos (
+            id serial PRIMARY KEY,
+            cupping_id integer NOT NULL REFERENCES cuppings(id),
+            lot text NOT NULL,
+            body text NOT NULL,
+            created_at date NOT NULL DEFAULT CURRENT_DATE
+        )"""
+    )
     cur.execute("SELECT COUNT(*) FROM cuppings")
     if cur.fetchone()[0] == 0:
-        for lot, aroma, taste, liquor in (("春茶-A", 8, 8, 7), ("夏茶-C", 5, 4, 6)):
+        # (批次, 香气, 滋味, 汤色, 柜位, 预计取出日)——不通过的夏茶-C 直接登记入柜
+        seed_rows = (
+            ("春茶-A", 8, 8, 7, None, None),
+            ("夏茶-C", 5, 4, 6, "A-07", date.today() + timedelta(days=7)),
+        )
+        for lot, aroma, taste, liquor, slot, remove_date in seed_rows:
             verdict, note, score = weigh(aroma, taste, liquor)
             cur.execute(
-                """INSERT INTO cuppings (lot, aroma, taste, liquor, score, verdict, note, created_by)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
-                (lot, aroma, taste, liquor, score, verdict, note, "taster"),
+                """INSERT INTO cuppings
+                       (lot, aroma, taste, liquor, score, verdict, note, created_by,
+                        freezer_slot, expected_remove_date)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                (lot, aroma, taste, liquor, score, verdict, note, "taster", slot, remove_date),
             )
     conn.commit()
     cur.close()

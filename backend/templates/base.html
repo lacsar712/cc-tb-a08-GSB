@@ -19,6 +19,7 @@
     <strong>茶叶拼配审评台</strong>
     {% if session.user %}
       <span>{{ session.user }}</span>
+      <a href="{{ url_for('freezer') }}">留样冷柜</a>
       <a href="{{ url_for('logout') }}">退出</a>
     {% endif %}
   </header>
